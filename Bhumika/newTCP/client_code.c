@@ -8,24 +8,38 @@
 
 #define CHUNKS_TOTAL 10
 
-
 int main(int argc, char *argv[])
 {
-    int portNum;                                                                        // to store the incoming server port number
-    char *addressIP;                                                                    // to store the incoming IP address 
+    // for taking the port numbers
+    int portNum1;
+    int portNum2;                                                                        
+    // for taking the IP addresses
+    char *addressIP1;                                                                     
+    char *addressIP2;
 
-   if( argc > 3 )
+   if( argc > 5 )
    {
       printf("Too many arguments supplied.\n");
    }
    else if (argc < 2)
    {
-      printf("One argument expected.\n");
+      printf("Port number and Ip addresses expected.\n");
    }
    else if (argc == 3)
    {
-        addressIP = argv[1];                                                            // get the server IP address as input from user    
-        portNum = atoi(argv[2]);                                                        // get the server port number as input from the user
+        addressIP1 = argv[1];                                                            // get the server IP address as input from user    
+        portNum1 = atoi(argv[2]);                                                        // get the server port number as input from the user
+   }
+   else if (argc == 5)
+   {
+	addressIP1 = argv[1];
+	addressIP2 = argv[2];
+	portNum1 = atoi(argv[3]);
+	portNum2 = atoi(argv[4]);
+   }
+   else if( argc != 5 && argc!=3) {
+      printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+      exit ( 1 );
    }
 
   
@@ -43,8 +57,8 @@ int main(int argc, char *argv[])
   /*---- Configure settings of the server address struct ----*/
   // Remote System - on which to connect - that is the server
   serverAddr.sin_family = AF_INET;                                                      /* Address family = Internet */
-  serverAddr.sin_port = htons(portNum);                                                 /* Set port number, using htons function to use proper byte order */
-  serverAddr.sin_addr.s_addr = inet_addr(addressIP);                                    /* Set IP address to server IP */
+  serverAddr.sin_port = htons(portNum1);                                                 /* Set port number, using htons function to use proper byte order */
+  serverAddr.sin_addr.s_addr = inet_addr(addressIP1);                                    /* Set IP address to server IP */
   memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);                        /* Set all bits of the padding field to 0 */
 
   /*---- Connect the socket to the server using the address struct ----*/

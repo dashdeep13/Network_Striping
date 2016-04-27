@@ -39,10 +39,6 @@ pthread_t tid[2]; 		// creating 2 threads
 // function executed by the first thread
 void* firstThread(void *arg)
 {
-
-	 struct timeval  tv1, tv2;                                   // Get the current time at the start of the program 
-	 gettimeofday(&tv1, NULL);
-
    	 unsigned long i = 0;
    	 pthread_t id = pthread_self();                              // calculating the id of the thread
 
@@ -65,16 +61,6 @@ void* firstThread(void *arg)
                 printf("The received message is: %s \n",newMesg);
         } 
 
-	 gettimeofday(&tv2, NULL);                                    // Get the time at the end
-
-	 double t1 = (double) (tv1.tv_sec);
-  	 double t2 = (double) (tv2.tv_usec)/1000000+(double)(tv2.tv_sec);
-
-
-  	 double t;
-  	 t = t2 - t1;                                                 // calculate the time elapsed from the start to the end
-  	 printf ("Total time for the first thread is = %f seconds\n", t );
-
 	pthread_exit(NULL);                                             // exit from this thread at the end
 
 
@@ -86,8 +72,40 @@ void* secondThread(void *arg)
 {
 } //2nd thread ends here
 
-int main()
+int main(int argc, char *argv[])
 {
+    // store port numbers
+    int portNum1;
+    int portNum2;                                                                        
+    // store IP addresses
+    char *addressIP1;                                                                     
+    char *addressIP2;
+
+
+    if( argc > 5 )
+    {
+       printf("Too many arguments supplied.\n");
+    }
+    else if (argc < 2)
+    {
+       printf("Port number and Ip addresses expected.\n");
+    }
+    else if (argc == 3)
+    {
+       addressIP1 = argv[1];                                                            // get the server IP address as input from user    
+       portNum1 = atoi(argv[2]);                                                        // get the server port number as input from the user
+    }
+    else if (argc == 5)
+    {
+       addressIP1 = argv[1];
+       addressIP2 = argv[2];
+       portNum1 = atoi(argv[3]);
+       portNum2 = atoi(argv[4]);
+    } 
+    else if( argc != 5 && argc!=3) {
+      printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+      exit ( 1 );
+    }
 
 
 /*
@@ -112,6 +130,8 @@ int main()
 
   // for thread 
   int err, err1;  
+  // to store the time after the join operation
+  struct timeval  tv1;
 
   serverSocket = socket(PF_INET, SOCK_STREAM, 0);                                       // Create the socket
   if (serverSocket < 0)
@@ -170,6 +190,15 @@ int main()
 
 	  (void) pthread_join(tid[0], NULL);
          // (void) pthread_join(tid[1], NULL);                  // to avoid the main process from interrupting the execution of either child threads
+/*
+         // calculate the time at this point
+         gettimeofday(&tv1, NULL);
+         double t1 = (double) (tv1.tv_sec);
+         // calculate the time difference
+         double tt;
+         tt = t12 - t11;                                     //calculate the time elapsed
+         printf ("Total time for execution is  %f seconds\n", tt );
+*/
 
   }
   return 0;
