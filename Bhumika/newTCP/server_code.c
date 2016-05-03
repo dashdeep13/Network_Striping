@@ -15,6 +15,7 @@
   char nameRecv[1024];
   int result;
   int i = 0;
+  int count_thread1,count_thread2;	
 
 
 pthread_t tid[2]; 		// creating 2 threads
@@ -29,20 +30,17 @@ void* firstThread(void *arg)
 
    	 if(pthread_equal(id,tid[0]))                                // calculated id and thread id of 1st thread
    	 {
-       	    printf("\n First thread processing\n");
-            printf("\n The id of the first thread is %lu \n", (unsigned long)id );
+       	    printf("\nFirst thread processing\n");
    	 }
 
 
 	/*---- Send a connection message ----*/
-          strcpy(bufferr,"Client is now connected\n");
+          strcpy(bufferr,"\nClient is now connected\n");
           send(newSocket[0],bufferr,sizeof(bufferr),0);
 
 
         /*---- Receive a lot of messages together and display all of them ----*/
-	int count = CHUNKS_TOTAL/2;
-	if(CHUNKS_TOTAL%2 !=0 ) count++;
-        for(i=0; i<count; i++){
+        for(i=0; i<count_thread1; i++){
                 recv(newSocket[0], buffer1, 1024, 0);
                 strcpy(newMesg,buffer1);
                 printf("The received message is: %s \n",newMesg);
@@ -65,8 +63,7 @@ void* secondThread(void *arg)
 
          if(pthread_equal(id,tid[0]))                                // calculated id and thread id of 1st thread
          {
-            printf("\n First thread processing\n");
-            printf("\n The id of the first thread is %lu \n", (unsigned long)id );
+            printf("\n Second thread processing\n");
          }
 
 
@@ -74,10 +71,9 @@ void* secondThread(void *arg)
           strcpy(bufferr,"Client is now connected\n");
           send(newSocket[1],bufferr,sizeof(bufferr),0);
 	
-	int count = CHUNKS_TOTAL/2;
 
         /*---- Receive a lot of messages together and display all of them ----*/
-        for(i=0; i<count; i++){
+        for(i=0; i<count_thread2; i++){
                 recv(newSocket[1], buffer1, sizeof(buffer1), 0);
                 strcpy(newMesg,buffer1);
                 printf("The received message is: %s \n",newMesg);
@@ -107,7 +103,7 @@ int main(int argc, char *argv[])
     }
     else if (argc < 2)
     {
-       printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+       printf("Usage: %s <IP address1> <Port Num1> <IPaddress2> <Port Num2>\n", argv[0]);
       exit ( 1 );
     }
     else if (argc == 3)
@@ -118,15 +114,25 @@ int main(int argc, char *argv[])
     else if (argc == 5)
     {
        addressIP1 = argv[1];
-       addressIP2 = argv[2];
-       portNum1 = atoi(argv[3]);
+       addressIP2 = argv[3];
+       portNum1 = atoi(argv[2]);
        portNum2 = atoi(argv[4]);
     } 
     else if( argc != 5 && argc!=3) {
-      printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+      printf("Usage: %s <IP address1> <Port Num1> <IPaddress2> <Port Num2>\n", argv[0]);
       exit ( 1 );
     }
 
+
+  count_thread1 = CHUNKS_TOTAL;
+
+  // we have 2 connections
+  if(portNum2 != -1) {
+        count_thread1 = CHUNKS_TOTAL/2;
+        if(CHUNKS_TOTAL%2 !=0 ) count_thread2++;
+
+        count_thread2 = CHUNKS_TOTAL/2;
+  }
 
 /*
   int serverSocket;                                                                     // Creating the server socket
@@ -257,7 +263,7 @@ int main(int argc, char *argv[])
           if (err != 0)
               printf("\ncan't create thread :[%s]", strerror(err));
           else
-              printf("\n First Thread created successfully\n");
+              printf("\nFirst Thread created successfully\n");
 
 	if(portNum2 != -1) {
           // creating thread 2 .. 2nd child thread
@@ -265,7 +271,7 @@ int main(int argc, char *argv[])
           if (err1 != 0)
               printf("\ncan't create thread :[%s]", strerror(err));
           else
-              printf("\n Second Thread created successfully\n");
+              printf("\nSecond Thread created successfully\n");
 	}
 
 	 (void) pthread_join(tid[0], NULL);

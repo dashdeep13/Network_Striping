@@ -9,7 +9,7 @@ int count_thread1 = 0;
 int count_thread2 = 0;
 
 //should be less than the data packet sent
-char data_to_send[] = "Message\n";
+char data_to_send[] = "Message is the best way to check for the best thing possible\n";
 
 pthread_t tid[2]; 		// creating 2 threads
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
    }
    else if (argc < 2)
    {
-     printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+     printf("Usage: %s <IP address1> <Port Num1> <IPaddress2> <Port Num2>\n", argv[0]);
       exit ( 1 );
    }
    else if (argc == 3)
@@ -81,12 +81,12 @@ int main(int argc, char *argv[])
    else if (argc == 5)
    {
 	addressIP1 = argv[1];
-	addressIP2 = argv[2];
-	portNum1 = atoi(argv[3]);
+	addressIP2 = argv[3];
+	portNum1 = atoi(argv[2]);
 	portNum2 = atoi(argv[4]);
    }
    else if( argc != 5 && argc!=3) {
-      printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+      printf("Usage: %s <IP address1> <Port Num1> <IPaddress2> <Port Num2>\n", argv[0]);
       exit ( 1 );
    }
 
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
   res2 = connect(clientSocket[0], (struct sockaddr *) &serverAddr[0], addr_size1);
   /*---- Read the message from the server into the buffer ----*/
   memset(&bufferr,0, sizeof(bufferr));
+  //printf("Trying to Confirm Connection\n");
   recv(clientSocket[0], bufferr, sizeof(bufferr), 0);
   printf(" %s \n",bufferr);
 
@@ -153,7 +154,9 @@ int main(int argc, char *argv[])
   // print time of operation start
   struct timeval  tv;
   gettimeofday(&tv, NULL);
-
+  printf("Will start to send data\n");
+  sleep(2);
+	
   unsigned long time_in_micro = (tv.tv_sec) * 1000000 + (tv.tv_usec)  ;
   printf ("Time just before Sending data  %lu micro seconds\n", time_in_micro );
 
@@ -162,7 +165,7 @@ int main(int argc, char *argv[])
   if (err != 0)
        printf("\ncan't create thread :[%s]", strerror(err));
   else
-       printf("\n First Thread created successfully\n");
+       printf("\nFirst Thread created successfully\n");
 
   if(portNum2 != -1) {
      // creating thread 2 .. 2nd child thread
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
      if (err1 != 0)
           printf("\ncan't create thread :[%s]", strerror(err));
      else
-          printf("\n Second Thread created successfully\n");
+          printf("\nSecond Thread created successfully\n");
   }
 
   (void) pthread_join(tid[0], NULL);
