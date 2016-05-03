@@ -70,7 +70,8 @@ int main(int argc, char *argv[])
    }
    else if (argc < 2)
    {
-      printf("Port number and Ip addresses expected.\n");
+     printf("Usage: %s <IP address1> <IPaddress2> <Port Num1> <Port Num2>\n", argv[0]);
+      exit ( 1 );
    }
    else if (argc == 3)
    {
