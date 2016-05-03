@@ -1,30 +1,13 @@
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdlib.h>
+#include "defs.h"
 
-// for the threads
-#include <pthread.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <time.h>
+  int serverSocket[2];                                                                     // Creating the server socket
+  int newSocket[2];                                                                        // new socket for the client
+  char buffer[MSG_SIZE];
+  char newMesg[MSG_SIZE];
 
-#define PORT 60021
-
-#define CHUNKS_TOTAL 10
-
-int serverSocket;                                                                     // Creating the server socket
-  int newSocket;                                                                        // new socket for the client
-  char buffer[1024];
-  char bufferr[1024];
-  char buffer1[1024];
-  char newMesg[1024];
-
-  struct sockaddr_in serverAddr;
-  struct sockaddr_storage serverStorage;
+  struct sockaddr_in serverAddr[2];
+  struct sockaddr_in clientAddr;
+  struct sockaddr_storage serverStorage[2];
 
   socklen_t addr_size;
   int clilen, inAddr;
@@ -40,27 +23,32 @@ pthread_t tid[2]; 		// creating 2 threads
 void* firstThread(void *arg)
 {
    	 unsigned long i = 0;
+  	 char bufferr[MSG_SIZE];
+	 char buffer1[MSG_SIZE];
    	 pthread_t id = pthread_self();                              // calculating the id of the thread
 
    	 if(pthread_equal(id,tid[0]))                                // calculated id and thread id of 1st thread
    	 {
        	    printf("\n First thread processing\n");
-            printf("\n The id of the first thread is %u \n", id );
+            printf("\n The id of the first thread is %lu \n", (unsigned long)id );
    	 }
 
 
 	/*---- Send a connection message ----*/
           strcpy(bufferr,"Client is now connected\n");
-          send(newSocket,bufferr,sizeof(bufferr),0);
+          send(newSocket[0],bufferr,sizeof(bufferr),0);
 
 
         /*---- Receive a lot of messages together and display all of them ----*/
-        for(i=0; i<CHUNKS_TOTAL/2; i++){
-                recv(newSocket, buffer1, 1024, 0);
+	int count = CHUNKS_TOTAL/2;
+	if(CHUNKS_TOTAL%2 !=0 ) count++;
+        for(i=0; i<count; i++){
+                recv(newSocket[0], buffer1, 1024, 0);
                 strcpy(newMesg,buffer1);
                 printf("The received message is: %s \n",newMesg);
         } 
 
+	close(newSocket[0]);
 	pthread_exit(NULL);                                             // exit from this thread at the end
 
 
@@ -70,13 +58,44 @@ void* firstThread(void *arg)
 // function executed by the second thread
 void* secondThread(void *arg)
 {
+	unsigned long i = 0;
+  	char bufferr[MSG_SIZE];
+	char buffer1[MSG_SIZE];
+         pthread_t id = pthread_self();                              // calculating the id of the thread
+
+         if(pthread_equal(id,tid[0]))                                // calculated id and thread id of 1st thread
+         {
+            printf("\n First thread processing\n");
+            printf("\n The id of the first thread is %lu \n", (unsigned long)id );
+         }
+
+
+        /*---- Send a connection message ----*/
+          strcpy(bufferr,"Client is now connected\n");
+          send(newSocket[1],bufferr,sizeof(bufferr),0);
+	
+	int count = CHUNKS_TOTAL/2;
+
+        /*---- Receive a lot of messages together and display all of them ----*/
+        for(i=0; i<count; i++){
+                recv(newSocket[1], buffer1, sizeof(buffer1), 0);
+                strcpy(newMesg,buffer1);
+                printf("The received message is: %s \n",newMesg);
+        }
+
+	close(newSocket[1]);
+        pthread_exit(NULL);
+
+
+
+
 } //2nd thread ends here
 
 int main(int argc, char *argv[])
 {
     // store port numbers
-    int portNum1;
-    int portNum2;                                                                        
+    int portNum1 = -1;
+    int portNum2 = -1;                                                                        
     // store IP addresses
     char *addressIP1;                                                                     
     char *addressIP2;
@@ -133,44 +152,104 @@ int main(int argc, char *argv[])
   // to store the time after the join operation
   struct timeval  tv1;
 
-  serverSocket = socket(PF_INET, SOCK_STREAM, 0);                                       // Create the socket
-  if (serverSocket < 0)
+  //creating socket for first conn
+
+  serverSocket[0] = socket(AF_INET, SOCK_STREAM, 0);                                       // Create the socket
+  if (serverSocket[0] < 0)
       {
       perror("ERROR opening socket");
       exit(1);
       }
 
   /*---- Configure settings of the server address struct ----*/
-  serverAddr.sin_family = AF_INET;                                                      /* Address family = Internet */
-  serverAddr.sin_port = htons(PORT);                                                    /* Set port number, using htons function to use proper byte order */
-  serverAddr.sin_addr.s_addr = INADDR_ANY;                                      /* Set IP address */
-  memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);                        /* Set all bits of the padding field to 0 */
+  serverAddr[0].sin_family = AF_INET;                                                      /* Address family = Internet */
+  serverAddr[0].sin_port = htons(portNum1);                                                    /* Set port number, using htons function to use proper byte order */
+ /* convert address to the right format */
+  if( inet_pton( AF_INET, addressIP1, &serverAddr[0].sin_addr ) <= 0 ) {
+      perror( "Cannot convert to correct address" );
+      exit(1);
+  }
+
+  memset(serverAddr[0].sin_zero, '\0', sizeof serverAddr[0].sin_zero);                        /* Set all bits of the padding field to 0 */
 
   /*---- Bind the address struct to the socket ----*/
-  if (bind(serverSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0)
+  if (bind(serverSocket[0], (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0)
       {
       perror("ERROR on binding");
       exit(1);
       }
 
   /*---- Listen on the socket, with 30 max connection requests queued ----*/
-  if(listen(serverSocket,30)==0)
+  if(listen(serverSocket[0],30)==0)
     printf("Listening\n");
   else
     printf("Error\n");
 
+  
+  //creating socket for second conn
+  
+  if(portNum2 != -1) {
+
+    serverSocket[1] = socket(AF_INET, SOCK_STREAM, 0);                                       // Create the socket
+    if (serverSocket[1] < 0)
+        {
+        perror("ERROR opening socket");
+        exit(1);
+        }
+
+    /*---- Configure settings of the server address struct ----*/
+    serverAddr[1].sin_family = AF_INET;                                                      /* Address family = Internet */
+    serverAddr[1].sin_port = htons(portNum2);                                                    /* Set port number, using htons function to use proper byte order */
+   /* convert address to the right format */
+    if( inet_pton( AF_INET, addressIP2, &serverAddr[1].sin_addr ) <= 0 ) {
+        perror( "Cannot convert to correct address" );
+        exit(1);
+    }
+
+    memset(serverAddr[1].sin_zero, '\0', sizeof serverAddr[1].sin_zero);                        /* Set all bits of the padding field to 0 */
+
+    /*---- Bind the address struct to the socket ----*/
+    if (bind(serverSocket[1], (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0)
+        {
+        perror("ERROR on binding");
+        exit(1);
+        }
+
+    /*---- Listen on the socket, with 30 max connection requests queued ----*/
+    if(listen(serverSocket[1],30)==0)
+      printf("Listening\n");
+    else
+      printf("Error\n");
+ 
+  } 
+
   /*---- Accept call creates a new socket for the incoming connection ----*/
-  addr_size = sizeof serverStorage;
+  //addr_size = sizeof serverStorage;
+  addr_size = sizeof(clientAddr);
+  	
   while(1)
   {
-	newSocket = accept(serverSocket, (struct sockaddr *) &serverStorage, &addr_size);
-          if (newSocket < 0)
+	newSocket[0] = accept(serverSocket[0], (struct sockaddr *) &clientAddr, &addr_size);
+          if (newSocket[0] < 0)
               {
               perror("ERROR on accept");
               exit(1);
               }
 
-          printf("server port = %d\n", ntohs(serverAddr.sin_port));
+	//second conn
+	if(portNum2 != -1) {
+	  newSocket[1] = accept(serverSocket[1], (struct sockaddr *) &clientAddr, &addr_size);
+            if (newSocket[1] < 0)
+              {
+                perror("ERROR on accept");
+                exit(1);
+              }
+
+
+	}
+
+
+          printf("server port = %d\n", ntohs(serverAddr[0].sin_port));
 	  
           // creating thread 1
 	  err =  pthread_create(&(tid[0]), NULL, &firstThread, NULL);
@@ -179,17 +258,20 @@ int main(int argc, char *argv[])
           else
               printf("\n First Thread created successfully\n");
 
-	/*
+	if(portNum2 != -1) {
           // creating thread 2 .. 2nd child thread
-          err1 = pthread_create(&(tid[1]), NULL, &doSecondThing, NULL);
+          err1 = pthread_create(&(tid[1]), NULL, &secondThread, NULL);
           if (err1 != 0)
               printf("\ncan't create thread :[%s]", strerror(err));
           else
               printf("\n Second Thread created successfully\n");
-	*/
+	}
 
-	  (void) pthread_join(tid[0], NULL);
-         // (void) pthread_join(tid[1], NULL);                  // to avoid the main process from interrupting the execution of either child threads
+	 (void) pthread_join(tid[0], NULL);
+
+	if(portNum2 != -1) {
+          (void) pthread_join(tid[1], NULL);                  // to avoid the main process from interrupting the execution of either child threads
+	}	
 /*
          // calculate the time at this point
          gettimeofday(&tv1, NULL);
@@ -199,8 +281,16 @@ int main(int argc, char *argv[])
          tt = t12 - t11;                                     //calculate the time elapsed
          printf ("Total time for execution is  %f seconds\n", tt );
 */
+	
+	struct timeval  tv;
+	gettimeofday(&tv, NULL);
 
+	unsigned long time_in_micro = (tv.tv_sec) * 1000000 + (tv.tv_usec)  ; 
+        printf ("Time after Receiving complete  %lu micro seconds\n", time_in_micro );
+	break;
   }
+  close(serverSocket[0]);
+  if(portNum2 !=-1) close(serverSocket[1]); 
   return 0;
 
 }//main
